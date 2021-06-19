@@ -1,8 +1,3 @@
-'''
-This mobile app multi timer on kivy was created to help me to solve my working problem at factory where i work as shift supervisor
-This simple app has 3 parallel timers, you can choose one each time interval from 1min to 3hourse by simple moving of slider.
-The idea was to build simple timer.
-'''
 
 
 from kivy.core.window import Window
@@ -22,7 +17,7 @@ import time
    
 
 
-class SimpleTimerApp(MDApp):     
+class MainApp(MDApp):     
     def build(self):  
 # BOXES
        self.screen = Screen()
@@ -161,46 +156,52 @@ class SimpleTimerApp(MDApp):
 # TIMERS ANIMATIONS
     # Animation of timer running
     def timer_1_change(self,*args):
-        self.screen.remove_widget(self.timer_1)
-        self.slider_1.value -=1
-        self.screen.add_widget(self.timer_1)
-        if self.slider_1.value == 0:
+        if self.slider_1.value <= 0:
                 self.start_1.icon = "play"
                 self.timer_1_interval.cancel()
                 self.screen.add_widget(self.box_1)
                 self.screen.remove_widget(self.bar_1)
+                self.slider_1.value = 0
                 self.sound = SoundLoader.load('bell.mp3')
                 self.sound.play()
+        else:
+            self.screen.remove_widget(self.timer_1)
+            self.slider_1.value -=1
+            self.screen.add_widget(self.timer_1)
         return
     def timer_2_change(self,*args):
-        self.screen.remove_widget(self.timer_2)
-        self.slider_2.value -=1
-        self.screen.add_widget(self.timer_2)
-        if self.slider_2.value == 0:
+        if self.slider_2.value <= 0:
                 self.start_2.icon = "play"
                 self.timer_2_interval.cancel()
                 self.screen.add_widget(self.box_2)
                 self.screen.remove_widget(self.bar_2)
+                self.slider_2.value = 0
                 self.sound = SoundLoader.load('bell.mp3')
                 self.sound.play()
+        else:
+            self.screen.remove_widget(self.timer_2)
+            self.slider_2.value -=1
+            self.screen.add_widget(self.timer_2)
         return
     def timer_3_change(self,*args):
-        self.screen.remove_widget(self.timer_3)
-        self.slider_3.value -=1
-        self.screen.add_widget(self.timer_3)
-        if self.slider_3.value == 0:
+        if self.slider_3.value <= 0:
                 self.start_3.icon = "play"
                 self.timer_3_interval.cancel()
                 self.screen.add_widget(self.box_3)
                 self.screen.remove_widget(self.bar_3)
+                self.slider_3.value = 0
                 self.sound = SoundLoader.load('bell.mp3')
                 self.sound.play()
+        else:
+            self.screen.remove_widget(self.timer_3)
+            self.slider_3.value -=1
+            self.screen.add_widget(self.timer_3)
         return
 
 
        
        
-SimpleTimerApp().run()
+MainApp().run()
 
 
 
