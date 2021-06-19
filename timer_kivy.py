@@ -1,3 +1,8 @@
+'''
+This mobile app multi timer on kivy was created to help me to solve my working problem at factory where i work as shift supervisor
+This simple app has 3 parallel timers, you can choose one each time interval from 1min to 3hourse by simple moving of slider.
+The idea was to build simple timer.
+'''
 
 
 from kivy.core.window import Window
