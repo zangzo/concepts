@@ -1,3 +1,13 @@
+'''
+Multi timer that can count time back from your input number (seconds) to 0.
+I'm using here threading do make possible to do a new input and to run a new timer during first one is working.
+threading solve operations one in the moment and than moves to next operation in different process. So if you have two for loops
+threading will do both of them at the same time, not waitin till the end of one of them. But step by step just one operation in moment.
+As alternative you can use multiprocessig. It solve both tasks as parallel processes. It use each core of processor for each task at the same time
+so tusk will be solved faster than in threading. But cost for it is that you use as many cores of your processor as many parallel task you have
+and you must to be careful with it.
+'''
+
 import time
 import threading
 message = 0
