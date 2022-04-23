@@ -1,0 +1,229 @@
+---
+title: "NYPD Shooting"
+output: html_document
+---
+
+#### Opening csv file and reading existing column names
+
+```{r}
+library(dplyr, warn.conflicts = FALSE)
+df <- read.csv("~/Desktop/MS-DS CU Boulder/Data Science as a Field/NYPD_Shooting_Incident_Data__Historic_.csv")
+colnames(df)
+```
+
+#### I interested in two features in dataset, OCCUR_DATE and LOCATION_DESC, leaving this two and checking summary of these features
+
+```{r}
+new_df <- select(df, OCCUR_DATE, LOCATION_DESC)
+summary(new_df)
+```
+
+#### There are 13581 rows in LOCATION_DESK where location is not specified. Also in summary of OCCUR_DATE we can see that values processed like strings. It should be converted in future. Converting all empty non NA values in LOCATION_DESC to NA values and checking number of created NA values 
+
+```{r}
+new_df_na <- new_df
+new_df_na[new_df_na == "" | new_df_na == " " | new_df_na == "NONE"] <- NA
+colSums(is.na(new_df_na))
+```
+
+#### Checking columns class. As was told before, OCCUR_DATE has class Factor, fixing it.
+
+```{r}
+sapply(new_df,class)
+```
+
+```{r}
+library(lubridate, warn.conflicts = FALSE)
+new_df_date <- new_df_na %>%
+    mutate(OCCUR_DATE = mdy(OCCUR_DATE))
+```
+
+
+#### Separating DATES and LOCATIONS to two different Datasets, checking summary of DATES again and checking unique values for LOCATIONS
+
+```{r}
+DATES <- new_df_date["OCCUR_DATE"]
+LOCATIONS <- na.omit(new_df_date["LOCATION_DESC"])
+summary(DATES)
+unique(LOCATIONS)
+```
+
+#### Checking global trend of shooting cases by year
+
+```{r}
+YEARS <- as.numeric(unlist(format(DATES,'%Y')))
+YEARS_FREQ <- as.data.frame(table(YEARS))
+library(ggplot2)
+ggplot(YEARS_FREQ, aes(x = YEARS, y = Freq)) + geom_bar(stat = "identity")
+```
+
+#### We can see downtrend and big anomaly in 2020
+
+#### Checking yearly trend by month. Summing up all incidents by month
+
+```{r}
+MONTH <- as.numeric(unlist(format(DATES,'%m')))
+MONTH_FREQ <- as.data.frame(table(MONTH))
+ggplot(MONTH_FREQ, aes(x = MONTH, y = Freq)) + geom_bar(stat = "identity")
+```
+
+#### We can see that summer monthes have more incidents than other periods of the year. Checking same tendency by using heatmap:
+
+```{r}
+MONTH_YEAR <- as.data.frame(table(MONTH,YEARS))
+library(reshape2)
+MONTH_BY_YEAR <- dcast(MONTH_YEAR, MONTH ~ YEARS)
+rownames(MONTH_BY_YEAR) <- MONTH_BY_YEAR$MONTH
+MONTH_BY_YEAR <- select(as.data.frame(MONTH_BY_YEAR), -MONTH)
+MATRIX <- as.matrix(MONTH_BY_YEAR)
+heatmap(MATRIX,Rowv = NA,Colv = NA)
+```
+
+#### From heatmap we can see that 2020 anomaly falling on summer monthes too, but summer shooting trend not so evident from heatmap. Building another plot, comparing graphs from 2006, 2009, 2013, 2016 and 2019 years
+
+
+```{r}
+M_DF <- as.data.frame(MATRIX)
+M_DF <- cbind(Month = rownames(M_DF), M_DF)
+Y2006 <- select(M_DF,c(Month,as.character(2006)))
+Y2009 <- select(M_DF,c(Month,as.character(2009)))
+Y2013 <- select(M_DF,c(Month,as.character(2013)))
+Y2016 <- select(M_DF,c(Month,as.character(2016)))
+Y2019 <- select(M_DF,c(Month,as.character(2019)))
+names(Y2006)[names(Y2006) == "2006"] <- "Year"
+names(Y2009)[names(Y2009) == "2009"] <- "Year"
+names(Y2013)[names(Y2013) == "2013"] <- "Year"
+names(Y2016)[names(Y2016) == "2016"] <- "Year"
+names(Y2019)[names(Y2019) == "2019"] <- "Year"
+
+ggplot(data = Y2006, aes(x = order(Month), y = Year,group = 1)) + 
+   geom_line() +
+   geom_line(data = Y2009, color = "red") +
+   geom_line(data = Y2013, color = "blue") +
+   geom_line(data = Y2016, color = "yellow") +
+   geom_line(data = Y2019, color = "green") + 
+   scale_x_continuous(breaks = seq(1, 12, 1))
+
+```
+
+#### From this graph we can learn that peak of incidents fall on May almost each year.
+
+#### Exploring places where incidents mostly common happened during two peaks from Heatmap above and checking global statistic.
+
+#### Firts plot - Oct-Dec 2006, hot place on the heatmap. Second plot - Jun-Aug 2020, another hot place. Third plot - all time statistic.
+
+```{r}
+LOC_BY_TIME <- na.omit(new_df_date)
+LOC_BY_TIME["YEARS"] <- as.numeric(unlist(format(LOC_BY_TIME["OCCUR_DATE"],'%Y')))
+LOC_BY_TIME["MONTHS"] <- as.numeric(unlist(format(LOC_BY_TIME["OCCUR_DATE"],'%m')))
+LOC_BY_TIME <- select(as.data.frame(LOC_BY_TIME), -OCCUR_DATE)
+head(LOC_BY_TIME)
+```
+
+```{r}
+library(treemap, warn.conflicts = FALSE)
+LOC_DATA <- as.data.frame(table(LOCATIONS))
+
+WIN2006 <- LOC_BY_TIME[LOC_BY_TIME$YEARS == "2006" & (LOC_BY_TIME$"MONTHS" == "10"| LOC_BY_TIME$"MONTHS" == "11"|LOC_BY_TIME$"MONTHS" == "12"),]   
+WIN2006 <- select(as.data.frame(WIN2006), -c(YEARS,MONTHS))
+WIN2006_FREQ <- as.data.frame(table(WIN2006))
+
+# treemap top places winter 2006 heatpeak
+treemap(WIN2006_FREQ,
+            index="WIN2006",
+            vSize="Freq",
+            type="index"
+            )
+
+SUM2020 <- LOC_BY_TIME[LOC_BY_TIME$YEARS == "2020" & (LOC_BY_TIME$"MONTHS" == "6"| LOC_BY_TIME$"MONTHS" == "7"|LOC_BY_TIME$"MONTHS" == "8"),]   
+SUM2020 <- select(as.data.frame(SUM2020), -c(YEARS,MONTHS))
+SUM2020_FREQ <- as.data.frame(table(SUM2020))
+ 
+# treemap top places summer 2020 heatpeak
+treemap(SUM2020_FREQ,
+            index="SUM2020",
+            vSize="Freq",
+            type="index"
+            )
+
+# treemap top places all incidents
+treemap(LOC_DATA,
+            index="LOCATIONS",
+            vSize="Freq",
+            type="index"
+            )
+```
+
+#### Interesting moment here that in Fall 2006 living areas take about a half of all incidents, big role play commercial places: Bars, Merchant, Restaurant etc.
+
+#### In Summer 2020 living areas are taking almost 4/5 of all incidentes. Weight of Privat houses increased in 3 times, commercial places are not in top 3 at all.
+
+#### Let's return to our DATES dataset. Plotting table with incidents by month.
+
+```{r}
+
+SORTED_DATES <- DATES[order(as.Date(DATES$OCCUR_DATE, format="%Y/%m/%d")),]
+SORTED_DATES <- format(SORTED_DATES, format="%Y/%m")
+SORTED_DATES <- as.data.frame(SORTED_DATES)
+SORTED_DATES_FREQ <- as.data.frame(table(SORTED_DATES))
+n<-dim(SORTED_DATES_FREQ)[1]
+SORTED_DATES_FREQ_2019 <- SORTED_DATES_FREQ[1:(n-12),]
+
+ggplot(SORTED_DATES_FREQ, aes(x=SORTED_DATES, y=Freq, group = 1)) +
+  geom_line() + 
+  xlab("")
+```
+
+#### Again we can see yearly repetitive trend and also anomaly of summer 2020.
+
+#### Lets build another plot without statistics from 2020
+
+```{r}
+
+ggplot(SORTED_DATES_FREQ_2019, aes(x=SORTED_DATES, y=Freq, group = 1)) +
+  geom_line() + 
+  xlab("")
+
+```
+
+#### Building a linear model that will predict possible level of incidents in 2020 if 2020 anomaly wasn't happened. Lets compare it with another prediction - when we will reach the same level of incidents after 2020 anomaly happened according to linear model. 
+
+##### Changing class of data in feature SORTED_DATES to Date class. 
+
+```{r}
+SORTED_DATES_FREQ_2019 <- SORTED_DATES_FREQ_2019 %>%
+    mutate(SORTED_DATES = ym(SORTED_DATES))
+SORTED_DATES_FREQ <- SORTED_DATES_FREQ %>%
+    mutate(SORTED_DATES = ym(SORTED_DATES))
+
+
+```
+
+#### Building and plotting model
+
+```{r}
+fit2 <- lm(Freq ~ SORTED_DATES, data = SORTED_DATES_FREQ_2019)
+
+new <- data.frame(SORTED_DATES = as.Date(c("2006-01-01","2020-12-01")))
+pred_2019 <- as.data.frame(as.integer(predict(fit2, new)))
+names(pred_2019)[names(pred_2019) == "as.integer(predict(fit2, new))"] <- "Freq"
+pred_2019 <- cbind(new,pred_2019)
+fit2 <- lm(Freq ~ SORTED_DATES, data = SORTED_DATES_FREQ)
+
+new <- data.frame(SORTED_DATES = as.Date(c("2006-01-01","2024-12-01")))
+pred_2020 <- as.data.frame(as.integer(predict(fit2, new)))
+names(pred_2020)[names(pred_2020) == "as.integer(predict(fit2, new))"] <- "Freq"
+pred_2020 <- cbind(new,pred_2020)
+
+ggplot(SORTED_DATES_FREQ, aes(x=SORTED_DATES, y=Freq, group = 1)) +
+  geom_line() + 
+  geom_line(data = pred_2019,color="blue") +
+  geom_line(data = pred_2020,color="red") +
+  xlab("")
+pred_2019
+pred_2020
+
+
+```
+
+#### We can see blue line of prediction for year 2020 that not included anomaly. Number of incidents could be about 69 cases per month and continue falling. We can reach this result afteranomaly of 2020 year happened only in 2025 year with level of incidents about 71 cases per month. We can see it from red prediction line on the plot.
